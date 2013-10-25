@@ -1,6 +1,7 @@
 package spooky
 
 import (
+	"encoding/binary"
 	"testing"
 )
 
@@ -143,4 +144,28 @@ func TestHash(t *testing.T) {
 			t.Errorf("%3d: saw 0x%.8x, expected 0x%.8x\n", i, saw, expected[i])
 		}
 	}
+
+	spok := New(0, 0)
+
+	bf := buf[:BUFSIZE-1]
+
+	bits := []int{200, 20, 20, 260, 11} // == BUFSIZE-1
+	for _, l := range bits {
+		spok.Write(bf[:l])
+		bf = bf[l:]
+	}
+	b := spok.Sum(nil)
+	saw := binary.LittleEndian.Uint32(b)
+	if saw != expected[511] {
+		t.Errorf("spok 511 failed saw 0x%.8x, expected 0x%.8x\n", saw, expected[511])
+	}
+
+	spok.Reset()
+	spok.Write(buf[:50])
+	b = spok.Sum(nil)
+	saw = binary.LittleEndian.Uint32(b)
+	if saw != expected[50] {
+		t.Errorf("spok 50 failed saw 0x%.8x, expected 0x%.8x\n", saw, expected[50])
+	}
+
 }

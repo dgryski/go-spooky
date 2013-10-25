@@ -5,6 +5,7 @@ package spooky
 
 import (
 	"encoding/binary"
+	"hash"
 )
 
 // number of uint64's in internal state
@@ -388,4 +389,208 @@ func Hash32(message []byte, hash1 uint32) uint32 {
 	h2 := uint64(0)
 	Hash128(message, &h1, &h2)
 	return uint32(h1)
+}
+
+type spooky struct {
+	m_data       [sc_bufSize]byte   // unhashed data, for partial messages
+	m_state      [sc_numVars]uint64 // internal state of the hash
+	m_length     int
+	m_remainder  uint8
+	seed1, seed2 uint64
+}
+
+func New(seed1, seed2 uint64) hash.Hash {
+	h := &spooky{}
+	h.seed1 = seed1
+	h.seed2 = seed2
+	h.m_state[0] = seed1
+	h.m_state[1] = seed2
+	return h
+}
+
+func (s *spooky) Reset() {
+	s.m_length = 0
+	s.m_remainder = 0
+	s.m_state[0] = s.seed1
+	s.m_state[1] = s.seed2
+}
+
+func (s *spooky) BlockSize() int { return 96 }
+func (s *spooky) Size() int      { return 16 }
+
+func (s *spooky) Sum(b []byte) []byte {
+
+	// init the variables
+	if s.m_length < sc_bufSize {
+		hash1 := s.m_state[0]
+		hash2 := s.m_state[1]
+		Short(s.m_data[:s.m_length], &hash1, &hash2)
+
+		var b1 [16]byte
+		binary.LittleEndian.PutUint64(b1[:], hash1)
+		binary.LittleEndian.PutUint64(b1[8:], hash2)
+		return append(b, b1[:]...)
+	}
+
+	data := s.m_data[:s.m_remainder]
+	remainder := s.m_remainder
+
+	h0 := s.m_state[0]
+	h1 := s.m_state[1]
+	h2 := s.m_state[2]
+	h3 := s.m_state[3]
+	h4 := s.m_state[4]
+	h5 := s.m_state[5]
+	h6 := s.m_state[6]
+	h7 := s.m_state[7]
+	h8 := s.m_state[8]
+	h9 := s.m_state[9]
+	h10 := s.m_state[10]
+	h11 := s.m_state[11]
+
+	if remainder >= sc_blockSize {
+		// m_data can contain two blocks; handle any whole first block
+
+		var buf [sc_numVars]uint64
+		for i := 0; i < sc_numVars; i++ {
+			buf[i] = binary.LittleEndian.Uint64(data)
+			data = data[8:]
+		}
+
+		Mix(buf[:], &h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7, &h8, &h9, &h10, &h11)
+
+		remainder -= sc_blockSize
+	}
+
+	// mix in the last partial block, and the length mod sc_blockSize
+
+	var buf [sc_numVars]uint64
+
+	// put in the data we have left
+	var bidx int
+	for bidx = 0; len(data) >= 8; bidx++ {
+		buf[bidx] = binary.LittleEndian.Uint64(data)
+		data = data[8:]
+	}
+
+	// we now have <1 uint64 left
+	var tmpbuf [8]uint8
+	copy(tmpbuf[:], data)
+
+	buf[bidx] = binary.LittleEndian.Uint64(tmpbuf[:])
+	bidx++
+
+	// the last byte
+	buf[sc_numVars-1] += uint64(remainder) << 56
+
+	// do some final mixing
+
+	end(buf[:], &h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7, &h8, &h9, &h10, &h11)
+
+	var b1 [16]byte
+	binary.LittleEndian.PutUint64(b1[:], h0)
+	binary.LittleEndian.PutUint64(b1[8:], h1)
+
+	return append(b, b1[:]...)
+}
+
+func (s *spooky) Write(message []byte) (int, error) {
+	length := len(message)
+
+	var h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11 uint64
+	newLength := length + int(s.m_remainder)
+
+	u := message
+
+	// Is this message fragment too short?  If it is, stuff it away.
+	if newLength < sc_bufSize {
+		copy(s.m_data[s.m_remainder:], message)
+		s.m_length += length
+		s.m_remainder = uint8(newLength)
+		return length, nil
+	}
+
+	// init the variables
+	if s.m_length < sc_bufSize {
+		h0 = s.m_state[0]
+		h1 = s.m_state[1]
+		h2 = sc_const
+		h3 = s.m_state[0]
+		h4 = s.m_state[1]
+		h5 = sc_const
+		h6 = s.m_state[0]
+		h7 = s.m_state[1]
+		h8 = sc_const
+		h9 = s.m_state[0]
+		h10 = s.m_state[1]
+		h11 = sc_const
+	} else {
+		h0 = s.m_state[0]
+		h1 = s.m_state[1]
+		h2 = s.m_state[2]
+		h3 = s.m_state[3]
+		h4 = s.m_state[4]
+		h5 = s.m_state[5]
+		h6 = s.m_state[6]
+		h7 = s.m_state[7]
+		h8 = s.m_state[8]
+		h9 = s.m_state[9]
+		h10 = s.m_state[10]
+		h11 = s.m_state[11]
+	}
+	s.m_length += length
+
+	// if we've got anything stuffed away, use it now
+	if s.m_remainder != 0 {
+		prefix := sc_bufSize - s.m_remainder
+		copy(s.m_data[s.m_remainder:], message)
+
+		var buf [sc_numVars]uint64
+		for i := 0; i < sc_numVars; i++ {
+			buf[i] = binary.LittleEndian.Uint64(s.m_data[i*8:])
+		}
+
+		Mix(buf[:], &h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7, &h8, &h9, &h10, &h11)
+
+		for i := 0; i < sc_numVars; i++ {
+			buf[i] = binary.LittleEndian.Uint64(s.m_data[96+i*8:])
+		}
+		Mix(buf[:], &h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7, &h8, &h9, &h10, &h11)
+
+		u = message[prefix:]
+		length -= int(prefix)
+	} else {
+		u = message
+	}
+
+	// handle all whole blocks of sc_blockSize bytes
+	for len(u) >= sc_blockSize {
+
+		var buf [sc_numVars]uint64
+		for i := 0; i < sc_numVars; i++ {
+			buf[i] = binary.LittleEndian.Uint64(u)
+			u = u[8:]
+		}
+		Mix(buf[:], &h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7, &h8, &h9, &h10, &h11)
+	}
+
+	// stuff away the last few bytes
+	s.m_remainder = uint8(len(u))
+	copy(s.m_data[:], u)
+
+	// stuff away the variables
+	s.m_state[0] = h0
+	s.m_state[1] = h1
+	s.m_state[2] = h2
+	s.m_state[3] = h3
+	s.m_state[4] = h4
+	s.m_state[5] = h5
+	s.m_state[6] = h6
+	s.m_state[7] = h7
+	s.m_state[8] = h8
+	s.m_state[9] = h9
+	s.m_state[10] = h10
+	s.m_state[11] = h11
+
+	return length, nil
 }
