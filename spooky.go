@@ -15,7 +15,7 @@ const sc_numVars = 12
 const sc_blockSize = sc_numVars * 8
 
 // size of buffer of unhashed data, in bytes
-const sc_bufSize = 2 * sc_blockSize
+const sc_bufSize = sc_blockSize
 
 const sc_const = uint64(0xdeadbeefdeadbeef)
 
@@ -314,7 +314,7 @@ func Hash128(message []byte, hash1, hash2 *uint64) {
 
 	length := len(message)
 
-	if length < sc_bufSize {
+	if length < 2*sc_blockSize {
 		Short(message, hash1, hash2)
 		return
 	}
@@ -550,11 +550,6 @@ func (s *spooky) Write(message []byte) (int, error) {
 			buf[i] = binary.LittleEndian.Uint64(s.m_data[i*8:])
 		}
 
-		Mix(buf[:], &h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7, &h8, &h9, &h10, &h11)
-
-		for i := 0; i < sc_numVars; i++ {
-			buf[i] = binary.LittleEndian.Uint64(s.m_data[96+i*8:])
-		}
 		Mix(buf[:], &h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7, &h8, &h9, &h10, &h11)
 
 		u = message[prefix:]
