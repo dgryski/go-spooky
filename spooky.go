@@ -190,63 +190,63 @@ func Short(message []byte, hash1, hash2 *uint64) {
 	*hash2 = b
 }
 
-func mix(data []uint64, s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11 *uint64) {
-	*s0 += data[0]
+func mix(data []byte, s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11 *uint64) {
+	*s0 += binary.LittleEndian.Uint64(data[0*8:])
 	*s2 ^= *s10
 	*s11 ^= *s0
 	*s0 = rot64(*s0, 11)
 	*s11 += *s1
-	*s1 += data[1]
+	*s1 += binary.LittleEndian.Uint64(data[1*8:])
 	*s3 ^= *s11
 	*s0 ^= *s1
 	*s1 = rot64(*s1, 32)
 	*s0 += *s2
-	*s2 += data[2]
+	*s2 += binary.LittleEndian.Uint64(data[2*8:])
 	*s4 ^= *s0
 	*s1 ^= *s2
 	*s2 = rot64(*s2, 43)
 	*s1 += *s3
-	*s3 += data[3]
+	*s3 += binary.LittleEndian.Uint64(data[3*8:])
 	*s5 ^= *s1
 	*s2 ^= *s3
 	*s3 = rot64(*s3, 31)
 	*s2 += *s4
-	*s4 += data[4]
+	*s4 += binary.LittleEndian.Uint64(data[4*8:])
 	*s6 ^= *s2
 	*s3 ^= *s4
 	*s4 = rot64(*s4, 17)
 	*s3 += *s5
-	*s5 += data[5]
+	*s5 += binary.LittleEndian.Uint64(data[5*8:])
 	*s7 ^= *s3
 	*s4 ^= *s5
 	*s5 = rot64(*s5, 28)
 	*s4 += *s6
-	*s6 += data[6]
+	*s6 += binary.LittleEndian.Uint64(data[6*8:])
 	*s8 ^= *s4
 	*s5 ^= *s6
 	*s6 = rot64(*s6, 39)
 	*s5 += *s7
-	*s7 += data[7]
+	*s7 += binary.LittleEndian.Uint64(data[7*8:])
 	*s9 ^= *s5
 	*s6 ^= *s7
 	*s7 = rot64(*s7, 57)
 	*s6 += *s8
-	*s8 += data[8]
+	*s8 += binary.LittleEndian.Uint64(data[8*8:])
 	*s10 ^= *s6
 	*s7 ^= *s8
 	*s8 = rot64(*s8, 55)
 	*s7 += *s9
-	*s9 += data[9]
+	*s9 += binary.LittleEndian.Uint64(data[9*8:])
 	*s11 ^= *s7
 	*s8 ^= *s9
 	*s9 = rot64(*s9, 54)
 	*s8 += *s10
-	*s10 += data[10]
+	*s10 += binary.LittleEndian.Uint64(data[10*8:])
 	*s0 ^= *s8
 	*s9 ^= *s10
 	*s10 = rot64(*s10, 22)
 	*s9 += *s11
-	*s11 += data[11]
+	*s11 += binary.LittleEndian.Uint64(data[11*8:])
 	*s1 ^= *s9
 	*s10 ^= *s11
 	*s11 = rot64(*s11, 46)
@@ -320,7 +320,6 @@ func Hash128(message []byte, hash1, hash2 *uint64) {
 	}
 
 	var h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11 uint64
-	var buf [sc_numVars]uint64
 	u := message
 
 	h0 = *hash1
@@ -338,21 +337,14 @@ func Hash128(message []byte, hash1, hash2 *uint64) {
 
 	// handle all whole sc_blockSize blocks of bytes
 	for len(u) >= sc_blockSize {
-		for i := 0; i < sc_numVars; i++ {
-			buf[i] = binary.LittleEndian.Uint64(u)
-			u = u[8:]
-		}
-		mix(buf[:], &h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7, &h8, &h9, &h10, &h11)
+		mix(u, &h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7, &h8, &h9, &h10, &h11)
+		u = u[sc_blockSize:]
 	}
 
 	remainder := len(u)
 
-	// reset everything in buf
-	for i := 0; i < sc_numVars; i++ {
-		buf[i] = 0
-	}
-
 	// put in the data we have left
+	var buf [sc_numVars]uint64
 	var bidx int
 	for bidx = 0; len(u) >= 8; bidx++ {
 		buf[bidx] = binary.LittleEndian.Uint64(u)
@@ -529,12 +521,7 @@ func (s *spooky) Write(message []byte) (int, error) {
 		prefix := sc_bufSize - s.m_remainder
 		copy(s.m_data[s.m_remainder:], message)
 
-		var buf [sc_numVars]uint64
-		for i := 0; i < sc_numVars; i++ {
-			buf[i] = binary.LittleEndian.Uint64(s.m_data[i*8:])
-		}
-
-		mix(buf[:], &h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7, &h8, &h9, &h10, &h11)
+		mix(s.m_data[:], &h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7, &h8, &h9, &h10, &h11)
 
 		u = message[prefix:]
 		length -= int(prefix)
@@ -544,13 +531,8 @@ func (s *spooky) Write(message []byte) (int, error) {
 
 	// handle all whole blocks of sc_blockSize bytes
 	for len(u) >= sc_blockSize {
-
-		var buf [sc_numVars]uint64
-		for i := 0; i < sc_numVars; i++ {
-			buf[i] = binary.LittleEndian.Uint64(u)
-			u = u[8:]
-		}
-		mix(buf[:], &h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7, &h8, &h9, &h10, &h11)
+		mix(u, &h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7, &h8, &h9, &h10, &h11)
+		u = u[sc_blockSize:]
 	}
 
 	// stuff away the last few bytes
