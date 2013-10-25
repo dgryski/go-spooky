@@ -446,20 +446,6 @@ func (s *spooky) Sum(b []byte) []byte {
 	h10 := s.m_state[10]
 	h11 := s.m_state[11]
 
-	if remainder >= sc_blockSize {
-		// m_data can contain two blocks; handle any whole first block
-
-		var buf [sc_numVars]uint64
-		for i := 0; i < sc_numVars; i++ {
-			buf[i] = binary.LittleEndian.Uint64(data)
-			data = data[8:]
-		}
-
-		Mix(buf[:], &h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7, &h8, &h9, &h10, &h11)
-
-		remainder -= sc_blockSize
-	}
-
 	// mix in the last partial block, and the length mod sc_blockSize
 
 	var buf [sc_numVars]uint64
