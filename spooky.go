@@ -190,7 +190,7 @@ func Short(message []byte, hash1, hash2 *uint64) {
 	*hash2 = b
 }
 
-func Mix(data []uint64, s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11 *uint64) {
+func mix(data []uint64, s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11 *uint64) {
 	*s0 += data[0]
 	*s2 ^= *s10
 	*s11 ^= *s0
@@ -342,7 +342,7 @@ func Hash128(message []byte, hash1, hash2 *uint64) {
 			buf[i] = binary.LittleEndian.Uint64(u)
 			u = u[8:]
 		}
-		Mix(buf[:], &h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7, &h8, &h9, &h10, &h11)
+		mix(buf[:], &h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7, &h8, &h9, &h10, &h11)
 	}
 
 	remainder := len(u)
@@ -534,7 +534,7 @@ func (s *spooky) Write(message []byte) (int, error) {
 			buf[i] = binary.LittleEndian.Uint64(s.m_data[i*8:])
 		}
 
-		Mix(buf[:], &h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7, &h8, &h9, &h10, &h11)
+		mix(buf[:], &h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7, &h8, &h9, &h10, &h11)
 
 		u = message[prefix:]
 		length -= int(prefix)
@@ -550,7 +550,7 @@ func (s *spooky) Write(message []byte) (int, error) {
 			buf[i] = binary.LittleEndian.Uint64(u)
 			u = u[8:]
 		}
-		Mix(buf[:], &h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7, &h8, &h9, &h10, &h11)
+		mix(buf[:], &h0, &h1, &h2, &h3, &h4, &h5, &h6, &h7, &h8, &h9, &h10, &h11)
 	}
 
 	// stuff away the last few bytes
