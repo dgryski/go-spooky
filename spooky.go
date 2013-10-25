@@ -336,8 +336,6 @@ func Hash128(message []byte, hash1, hash2 *uint64) {
 	h10 = *hash2
 	h11 = sc_const
 
-	//   end = u.p64 + (length/sc_blockSize)*sc_numVars;
-
 	// handle all whole sc_blockSize blocks of bytes
 	for len(u) >= sc_blockSize {
 		for i := 0; i < sc_numVars; i++ {
