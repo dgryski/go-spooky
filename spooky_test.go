@@ -171,5 +171,5 @@ func TestHash(t *testing.T) {
 
 }
 
-var _ hash.Hash32 = &spooky{}
-var _ hash.Hash64 = &spooky{}
+var _ hash.Hash32 = &Spooky{}
+var _ hash.Hash64 = &Spooky{}

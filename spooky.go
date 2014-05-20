@@ -3,10 +3,7 @@
 // Public domain, like the original
 package spooky
 
-import (
-	"encoding/binary"
-	"hash"
-)
+import "encoding/binary"
 
 // number of uint64's in internal state
 const sc_numVars = 12
@@ -387,7 +384,7 @@ func Hash32(message []byte, hash1 uint32) uint32 {
 	return uint32(h1)
 }
 
-type spooky struct {
+type Spooky struct {
 	m_data       [sc_bufSize]byte   // unhashed data, for partial messages
 	m_state      [sc_numVars]uint64 // internal state of the hash
 	m_length     int
@@ -395,8 +392,8 @@ type spooky struct {
 	seed1, seed2 uint64
 }
 
-func New(seed1, seed2 uint64) hash.Hash {
-	h := &spooky{}
+func New(seed1, seed2 uint64) *Spooky {
+	h := &Spooky{}
 	h.seed1 = seed1
 	h.seed2 = seed2
 	h.m_state[0] = seed1
@@ -404,17 +401,17 @@ func New(seed1, seed2 uint64) hash.Hash {
 	return h
 }
 
-func (s *spooky) Reset() {
+func (s *Spooky) Reset() {
 	s.m_length = 0
 	s.m_remainder = 0
 	s.m_state[0] = s.seed1
 	s.m_state[1] = s.seed2
 }
 
-func (s *spooky) BlockSize() int { return 96 }
-func (s *spooky) Size() int      { return 16 }
+func (s *Spooky) BlockSize() int { return 96 }
+func (s *Spooky) Size() int      { return 16 }
 
-func (s *spooky) Sum32() uint32 {
+func (s *Spooky) Sum32() uint32 {
 
 	var b [16]byte
 
@@ -425,7 +422,7 @@ func (s *spooky) Sum32() uint32 {
 	return uint32(h)
 }
 
-func (s *spooky) Sum64() uint64 {
+func (s *Spooky) Sum64() uint64 {
 
 	var b [16]byte
 
@@ -434,7 +431,7 @@ func (s *spooky) Sum64() uint64 {
 	return binary.LittleEndian.Uint64(b[:])
 }
 
-func (s *spooky) Sum(b []byte) []byte {
+func (s *Spooky) Sum(b []byte) []byte {
 
 	// init the variables
 	if s.m_length < sc_bufSize {
@@ -496,7 +493,7 @@ func (s *spooky) Sum(b []byte) []byte {
 	return append(b, b1[:]...)
 }
 
-func (s *spooky) Write(message []byte) (int, error) {
+func (s *Spooky) Write(message []byte) (int, error) {
 	length := len(message)
 
 	var h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11 uint64
