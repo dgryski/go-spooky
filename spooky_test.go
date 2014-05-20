@@ -2,6 +2,7 @@ package spooky
 
 import (
 	"encoding/binary"
+	"hash"
 	"testing"
 )
 
@@ -169,3 +170,6 @@ func TestHash(t *testing.T) {
 	}
 
 }
+
+var _ hash.Hash32 = &spooky{}
+var _ hash.Hash64 = &spooky{}

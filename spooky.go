@@ -414,6 +414,26 @@ func (s *spooky) Reset() {
 func (s *spooky) BlockSize() int { return 96 }
 func (s *spooky) Size() int      { return 16 }
 
+func (s *spooky) Sum32() uint32 {
+
+	var b [16]byte
+
+	s.Sum(b[:0])
+
+	h := binary.LittleEndian.Uint64(b[:])
+
+	return uint32(h)
+}
+
+func (s *spooky) Sum64() uint64 {
+
+	var b [16]byte
+
+	s.Sum(b[:0])
+
+	return binary.LittleEndian.Uint64(b[:])
+}
+
 func (s *spooky) Sum(b []byte) []byte {
 
 	// init the variables
