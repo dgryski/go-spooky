@@ -140,7 +140,7 @@ func TestHash(t *testing.T) {
 
 	for i := 0; i < BUFSIZE; i++ {
 		buf[i] = uint8(i + 128)
-		saw := Hash32(buf[:i], 0) // note: doesn't include the item we just added
+		saw := Hash32(buf[:i]) // note: doesn't include the item we just added
 		if saw != expected[i] {
 			t.Errorf("%3d: saw 0x%.8x, expected 0x%.8x\n", i, saw, expected[i])
 		}

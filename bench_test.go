@@ -19,6 +19,6 @@ func BenchmarkHash64(b *testing.B) {
 	buf := make([]byte, 2048)
 
 	for i := 0; i < b.N; i++ {
-		Hash64(buf, 0)
+		Hash64(buf)
 	}
 }

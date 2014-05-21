@@ -371,13 +371,21 @@ func Hash128(message []byte, hash1, hash2 *uint64) {
 	*hash2 = h1
 }
 
-func Hash64(message []byte, hash1 uint64) uint64 {
+func Hash64(message []byte) uint64 {
+	return Hash64Seed(message, 0)
+}
+
+func Hash64Seed(message []byte, hash1 uint64) uint64 {
 	hash2 := uint64(0)
 	Hash128(message, &hash1, &hash2)
 	return hash1
 }
 
-func Hash32(message []byte, hash1 uint32) uint32 {
+func Hash32(message []byte) uint32 {
+	return Hash32Seed(message, 0)
+}
+
+func Hash32Seed(message []byte, hash1 uint32) uint32 {
 	h1 := uint64(hash1)
 	h2 := uint64(0)
 	Hash128(message, &h1, &h2)
