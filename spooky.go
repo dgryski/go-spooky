@@ -555,7 +555,6 @@ func (s *Spooky) Write(message []byte) (int, error) {
 		h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11 = mix(s.m_data[:], h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11)
 
 		u = message[prefix:]
-		length -= int(prefix)
 	} else {
 		u = message
 	}

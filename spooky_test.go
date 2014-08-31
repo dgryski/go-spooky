@@ -152,7 +152,10 @@ func TestHash(t *testing.T) {
 
 	bits := []int{200, 20, 20, 260, 11} // == BUFSIZE-1
 	for _, l := range bits {
-		spok.Write(bf[:l])
+		w, _ := spok.Write(bf[:l])
+		if w != l {
+			t.Errorf("Write(%d bytes) = %d, want %d\n", l, w, l)
+		}
 		bf = bf[l:]
 	}
 	b := spok.Sum(nil)
